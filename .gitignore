@@ -9,14 +9,60 @@ crash.log
 
 # Ansible
 *.retry
-.vault_pass
+*.log
+inventory/*.ini
+inventory/*.yml
+!inventory/.gitkeep
 
-# Segredos
+# Vault / Credenciais
+*vault*.yml
+*vault*.yaml
+*.vault
+.vault_pass
+.vault_password
 *.pem
 *.key
 .env
 
-# SO / editores
-.DS_Store
-.idea/
+# Variáveis sensíveis
+host_vars/*/vault.yml
+group_vars/*/vault.yml
+
+# Claude
+CLAUDE.md
+.claude/
+
+# Editor / IDE
+*.swp
+*.swo
+*~
 .vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python / venv
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Collections locais (não versionar no repo AAP)
+collections/
+
+# Temporários
+*.tmp
+*.bak
+
+# MCP server
+.mcp.json
+
+# Cursorrules
+.cursorrules
+
+# Documentos
+Demo_Runbook_AAP_SRE_60min.docx
+
+# Labs locais
