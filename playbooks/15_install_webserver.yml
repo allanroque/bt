@@ -3,7 +3,13 @@
 - name: Instalar web server (httpd)
   hosts: all
   become: true
-  gather_facts: true
+  gather_facts: false
+
+  pre_tasks:
+    - name: Aguardar SSH ficar disponível
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        delay: 5
 
   vars:
     app_version: "{{ app_version | default('v1.0', true) }}"

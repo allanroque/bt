@@ -3,7 +3,7 @@
 - name: Hardening - SELinux enforcing
   hosts: all
   become: true
-  gather_facts: true
+  gather_facts: false
 
   pre_tasks:
     - name: Aguardar SSH ficar disponível
