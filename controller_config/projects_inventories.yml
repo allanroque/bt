@@ -1,36 +1,52 @@
 ---
 # Projeto e inventários da demo (Configuration-as-Code)
 controller_projects:
-  - name: Better Together Demo
-    organization: Default
+  - name: PROJ-TERRAFORM
+    organization: BT
     scm_type: git
-    scm_url: https://github.com/SEU_USUARIO/SEU_REPO.git   # ajuste para este repositório
+    scm_url: https://github.com/allanroque/bt.git
     scm_branch: main
-    scm_update_on_launch: true
+    scm_update_on_launch: true       # atualiza a cada launch
+    scm_update_cache_timeout: 0      # sem cache (sempre busca do git)
+    scm_clean: true                  # working tree limpo a cada update
+    default_environment: ee-demo-lab-bt
 
 controller_inventories:
-  - name: Demo Inventory (localhost)
-    organization: Default
+  # Inventário estático apenas com localhost (alvos: provision/destroy via TFE)
+  - name: INV-LOCAL
+    organization: BT
+    description: Localhost para passos que rodam contra o TFE (provision/destroy)
 
-  - name: Terraform State Inventory
-    organization: Default
-
-controller_inventory_sources:
-  - name: Terraform State Inventory Source
-    inventory: Terraform State Inventory
-    organization: Default
-    source: scm
-    source_project: Better Together Demo
-    source_path: inventories/terraform_state.yml
-    credential: Terraform Enterprise Token
-    overwrite: true
-    update_on_launch: false
-    execution_environment: bt-demo-ee
+  # Inventário dinâmico AWS EC2 (alvos: hosts provisionados pelo Terraform)
+  - name: INV-TERRAFORM
+    organization: BT
+    description: Recursos AWS EC2 provisionados pelo Terraform Enterprise
 
 controller_hosts:
   - name: localhost
-    inventory: Demo Inventory (localhost)
+    inventory: INV-LOCAL
     variables:
       ansible_connection: local
-      ansible_python_interpreter: "{  { ansible_playbook_python }}"
-# NOTA: remova o espaço dentro de "{  {" ao aplicar.
+      # !unsafe preserva o literal para ser resolvido em tempo de execução do job
+      ansible_python_interpreter: !unsafe "{{ ansible_playbook_python }}"
+
+controller_inventory_sources:
+  - name: AWS source for TFE resources
+    inventory: INV-TERRAFORM
+    organization: BT
+    source: ec2
+    credential: CRED-BT-AWS
+    execution_environment: ee-demo-lab-bt
+    overwrite: true
+    update_on_launch: true
+    verbosity: 1
+    update_cache_timeout: 0
+    source_vars: |
+      ---
+      hostnames:
+        - tag:Name
+      compose:
+        ansible_host: public_ip_address
+        ansible_ssh_pipelining: "true"
+      regions:
+        - us-east-2

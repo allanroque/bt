@@ -5,7 +5,7 @@ controller_workflows:
   # Workflow Day 1 — espelha o diagrama de provisionamento
   # ===========================================================
   - name: BT - 01 Provision Web App
-    organization: Default
+    organization: BT
     description: >-
       1) Terraform provisiona; 2) Inventário dinâmico sincroniza;
       3) Configure/App/Compliance; 4) Load Balancer; 5) ServiceNow
@@ -15,7 +15,7 @@ controller_workflows:
         success_nodes: [inventory_sync]
 
       - identifier: inventory_sync
-        unified_job_template: Terraform State Inventory Source
+        unified_job_template: AWS source for TFE resources
         success_nodes: [configure]
 
       - identifier: configure
@@ -40,7 +40,7 @@ controller_workflows:
   # Workflow Day 2 — atualização da aplicação
   # ===========================================================
   - name: BT - 02 Update Application
-    organization: Default
+    organization: BT
     description: Atualização de versão da aplicação (Day 2 operations)
     simplified_workflow_nodes:
       - identifier: update_app
@@ -53,7 +53,7 @@ controller_workflows:
   # Workflow Descomissionamento — espelha o segundo diagrama
   # ===========================================================
   - name: BT - 99 Decommission
-    organization: Default
+    organization: BT
     description: >-
       1) Remove do LB; 2) Snapshot dos volumes; 3) Terraform destroy;
       4) Sync de inventário; 5) Atualiza ITSM/CMDB
@@ -73,7 +73,7 @@ controller_workflows:
         success_nodes: [inventory_sync]
 
       - identifier: inventory_sync
-        unified_job_template: Terraform State Inventory Source
+        unified_job_template: AWS source for TFE resources
         success_nodes: [servicenow]
         failure_nodes: [servicenow]   # state vazio pode falhar o sync; segue para ITSM
 

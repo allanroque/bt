@@ -40,7 +40,7 @@ variable "web_instance_count" {
 }
 
 variable "instance_type" {
-  description = "Tipo da instância EC2"
+  description = "Tipo da instância EC2 (>= 2 GiB de memória)"
   type        = string
-  default     = "t3.micro"
+  default     = "t3.small"
 }
