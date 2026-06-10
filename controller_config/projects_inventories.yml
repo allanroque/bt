@@ -1,0 +1,36 @@
+---
+# Projeto e inventários da demo (Configuration-as-Code)
+controller_projects:
+  - name: Better Together Demo
+    organization: Default
+    scm_type: git
+    scm_url: https://github.com/SEU_USUARIO/SEU_REPO.git   # ajuste para este repositório
+    scm_branch: main
+    scm_update_on_launch: true
+
+controller_inventories:
+  - name: Demo Inventory (localhost)
+    organization: Default
+
+  - name: Terraform State Inventory
+    organization: Default
+
+controller_inventory_sources:
+  - name: Terraform State Inventory Source
+    inventory: Terraform State Inventory
+    organization: Default
+    source: scm
+    source_project: Better Together Demo
+    source_path: inventories/terraform_state.yml
+    credential: Terraform Enterprise Token
+    overwrite: true
+    update_on_launch: false
+    execution_environment: bt-demo-ee
+
+controller_hosts:
+  - name: localhost
+    inventory: Demo Inventory (localhost)
+    variables:
+      ansible_connection: local
+      ansible_python_interpreter: "{  { ansible_playbook_python }}"
+# NOTA: remova o espaço dentro de "{  {" ao aplicar.

@@ -1,0 +1,71 @@
+---
+# Passo 3 do Workflow Day 1 — "Application"
+# Deploy do site Parasol Insurance (mesma app do lab ansible-tmm/aap-hashi-lab)
+- name: Deploy Parasol Insurance website with Nginx
+  hosts: role_webserver
+  become: true
+  gather_facts: false
+
+  vars:
+    website_repo: "https://github.com/ansible-tmm/parasol-website.git"
+    website_version: "main"
+    nginx_root: /usr/share/nginx/html
+    temp_dir: /tmp/parasol-website
+    app_version: "v1.0"
+
+  tasks:
+    - name: Ensure Nginx is installed
+      ansible.builtin.dnf:
+        name: nginx
+        state: present
+
+    - name: Clone Parasol website repository
+      ansible.builtin.git:
+        repo: "{{ website_repo }}"
+        dest: "{{ temp_dir }}"
+        version: "{{ website_version }}"
+        force: true
+
+    - name: Copy website files to nginx root
+      ansible.builtin.copy:
+        src: "{{ temp_dir }}/"
+        dest: "{{ nginx_root }}/"
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0644'
+        directory_mode: '0755'
+
+    - name: Stamp app version on the page footer (visível na demo)
+      ansible.builtin.copy:
+        dest: "{{ nginx_root }}/version.txt"
+        mode: '0644'
+        content: |
+          app_version: {{ app_version }}
+          deployed_by: Ansible Automation Platform
+          provisioned_by: Terraform Enterprise
+          deployed_at: {{ now(utc=true).isoformat() }}
+
+    - name: Restore SELinux contexts on nginx html directory
+      ansible.builtin.command: restorecon -Rv {{ nginx_root }}
+      changed_when: false
+
+    - name: Clean up temporary directory
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: absent
+
+    - name: Ensure nginx is running and enabled
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted
+        enabled: true
+
+    - name: Verify application responds (smoke test)
+      ansible.builtin.uri:
+        url: "http://localhost/"
+        status_code: 200
+      retries: 5
+      delay: 3
+      register: smoke
+      until: smoke.status == 200

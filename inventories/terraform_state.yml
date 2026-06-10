@@ -1,0 +1,38 @@
+---
+# Inventário Dinâmico a partir do state do Terraform Enterprise
+# Plugin: cloud.terraform.terraform_state
+#
+# No AAP: crie um Inventory Source apontando para este arquivo (source from project).
+# O token do TFE deve estar disponível como variável de ambiente no EE, via
+# credencial customizada "Terraform Enterprise Token" (ver controller_config/),
+# que exporta TF_TOKEN_<hostname com pontos/hífens substituídos por underscores>.
+# Ex.: tfe.example.com -> TF_TOKEN_tfe_example_com
+
+plugin: cloud.terraform.terraform_state
+
+backend_type: remote
+
+backend_config:
+  # Ajuste para o seu ambiente TFE
+  hostname: tfe.example.com
+  organization: redhat-demo
+  workspaces:
+    name: aws-webapp-demo
+
+# Conexão: usa o IP público das instâncias EC2
+hostnames:
+  - public_ip
+
+compose:
+  ansible_host: values.public_ip
+  private_ip: values.private_ip
+  instance_id: values.id
+
+# Agrupamento pelas tags definidas no Terraform (tags.Role = webserver)
+keyed_groups:
+  - key: values.tags.Role
+    prefix: role
+    separator: "_"
+  - key: values.tags.App
+    prefix: app
+    separator: "_"

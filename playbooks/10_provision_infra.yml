@@ -1,0 +1,47 @@
+---
+# Passo 1 do Workflow Day 1
+# AAP dispara o provisionamento no Terraform Enterprise:
+#  - envia a configuração (terraform/aws-webapp) como nova configuration version
+#  - cria um run com auto_apply e aguarda a conclusão
+- name: Provision infrastructure via Terraform Enterprise
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    tfe_hostname: "{{ lookup('env', 'TFE_HOSTNAME') | default('tfe.example.com', true) }}"
+    tfe_token: "{{ lookup('env', 'TFE_TOKEN') }}"
+    tfe_organization: "{{ lookup('env', 'TFE_ORGANIZATION') | default('redhat-demo', true) }}"
+    tfe_workspace: "aws-webapp-demo"
+    tfe_validate_certs: false
+    tf_config_path: "{{ playbook_dir }}/../terraform/aws-webapp"
+
+  tasks:
+    - name: Create a new configuration version in TFE workspace
+      hashicorp.terraform.configuration_version:
+        tf_hostname: "{{ tfe_hostname }}"
+        tf_token: "{{ tfe_token }}"
+        tf_validate_certs: "{{ tfe_validate_certs }}"
+        organization: "{{ tfe_organization }}"
+        workspace: "{{ tfe_workspace }}"
+        configuration_files_path: "{{ tf_config_path }}"
+        auto_queue_runs: false
+        state: present
+
+    - name: Trigger a TFE run and apply the changes
+      hashicorp.terraform.run:
+        tf_hostname: "{{ tfe_hostname }}"
+        tf_token: "{{ tfe_token }}"
+        tf_validate_certs: "{{ tfe_validate_certs }}"
+        organization: "{{ tfe_organization }}"
+        workspace: "{{ tfe_workspace }}"
+        run_message: "Provision web app - triggered by AAP workflow (Better Together demo)"
+        auto_apply: true
+        poll_interval: 5
+        poll_timeout: 900
+        state: present
+      register: tfe_run_result
+
+    - name: Show TFE run result
+      ansible.builtin.debug:
+        var: tfe_run_result

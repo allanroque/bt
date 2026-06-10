@@ -1,0 +1,36 @@
+---
+# Passo 4 do Workflow Day 1 — "Orquestrar infraestrutura de apoio"
+# Atualização do Load Balancer. No cenário "web app simples" este passo é
+# opcional/simulado; se houver um ALB com target group, defina lb_target_group_arn.
+- name: Update load balancer with new web servers
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    lb_target_group_arn: ""           # preencha para registrar de verdade
+    lb_action: "register"             # register | deregister
+    aws_region: us-east-1
+
+  tasks:
+    - name: Collect web server instance IDs from inventory
+      ansible.builtin.set_fact:
+        web_instance_ids: >-
+          {{ groups['role_webserver'] | default([])
+             | map('extract', hostvars, 'instance_id') | select('defined') | list }}
+
+    - name: Register/deregister targets in the load balancer
+      community.aws.elb_target:
+        target_group_arn: "{{ lb_target_group_arn }}"
+        target_id: "{{ item }}"
+        region: "{{ aws_region }}"
+        state: "{{ 'present' if lb_action == 'register' else 'absent' }}"
+      loop: "{{ web_instance_ids }}"
+      when: lb_target_group_arn | length > 0
+
+    - name: Simulated update (sem ALB configurado)
+      ansible.builtin.debug:
+        msg: >-
+          [SIMULADO] Load balancer atualizado ({{ lb_action }}):
+          {{ web_instance_ids | join(', ') | default('nenhuma instância', true) }}
+      when: lb_target_group_arn | length == 0

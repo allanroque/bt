@@ -1,0 +1,44 @@
+---
+# Passo 3 do Workflow Day 1 — "Compliance"
+# Checagens rápidas de conformidade nos novos hosts (exemplo para demo)
+- name: Compliance checks on new infrastructure
+  hosts: role_webserver
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Ensure SELinux is enforcing
+      ansible.posix.selinux:
+        policy: targeted
+        state: enforcing
+
+    - name: Disable SSH root login
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin no'
+        validate: 'sshd -t -f %s'
+      notify: Restart sshd
+
+    - name: Ensure auditd is installed and running
+      ansible.builtin.dnf:
+        name: audit
+        state: present
+
+    - name: Collect compliance summary
+      ansible.builtin.set_fact:
+        compliance_report:
+          hostname: "{{ inventory_hostname }}"
+          selinux: "{{ ansible_selinux.mode | default('unknown') }}"
+          kernel: "{{ ansible_kernel }}"
+          distribution: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Show compliance summary
+      ansible.builtin.debug:
+        var: compliance_report
+
+  handlers:
+    - name: Restart sshd
+      ansible.builtin.systemd:
+        name: sshd
+        state: restarted

@@ -1,0 +1,103 @@
+---
+# Job Templates da demo (Configuration-as-Code)
+controller_templates:
+  - name: BT - 10 Provision Infra (TFE)
+    organization: Default
+    project: Better Together Demo
+    playbook: playbooks/10_provision_infra.yml
+    inventory: Demo Inventory (localhost)
+    credentials:
+      - Terraform Enterprise Token
+    execution_environment: bt-demo-ee
+
+  - name: BT - 20 Configure Web Servers
+    organization: Default
+    project: Better Together Demo
+    playbook: playbooks/20_configure_webservers.yml
+    inventory: Terraform State Inventory
+    credentials:
+      - Machine SSH (bt-demo)
+    execution_environment: bt-demo-ee
+
+  - name: BT - 30 Deploy Application
+    organization: Default
+    project: Better Together Demo
+    playbook: playbooks/30_deploy_app.yml
+    inventory: Terraform State Inventory
+    credentials:
+      - Machine SSH (bt-demo)
+    execution_environment: bt-demo-ee
+    survey_enabled: true
+    survey_spec:
+      name: ""
+      description: ""
+      spec:
+        - question_name: Versão da aplicação
+          variable: app_version
+          type: text
+          default: v1.0
+          required: true
+
+  - name: BT - 40 Compliance Checks
+    organization: Default
+    project: Better Together Demo
+    playbook: playbooks/40_compliance.yml
+    inventory: Terraform State Inventory
+    credentials:
+      - Machine SSH (bt-demo)
+    execution_environment: bt-demo-ee
+
+  - name: BT - 45 Update Load Balancer
+    organization: Default
+    project: Better Together Demo
+    playbook: playbooks/45_update_loadbalancer.yml
+    inventory: Terraform State Inventory
+    credentials:
+      - AWS (bt-demo)
+    execution_environment: bt-demo-ee
+
+  - name: BT - 50 Update ServiceNow
+    organization: Default
+    project: Better Together Demo
+    playbook: playbooks/50_update_servicenow.yml
+    inventory: Terraform State Inventory
+    credentials:
+      - ServiceNow (bt-demo)
+    execution_environment: bt-demo-ee
+
+  - name: BT - 60 Update Application (Day 2)
+    organization: Default
+    project: Better Together Demo
+    playbook: playbooks/60_update_app.yml
+    inventory: Terraform State Inventory
+    credentials:
+      - Machine SSH (bt-demo)
+    execution_environment: bt-demo-ee
+    survey_enabled: true
+    survey_spec:
+      name: ""
+      description: ""
+      spec:
+        - question_name: Nova versão da aplicação
+          variable: app_version
+          type: text
+          default: v2.0
+          required: true
+
+  - name: BT - 80 Snapshot Volumes
+    organization: Default
+    project: Better Together Demo
+    playbook: playbooks/80_snapshot_volumes.yml
+    inventory: Terraform State Inventory
+    credentials:
+      - AWS (bt-demo)
+    execution_environment: bt-demo-ee
+
+  - name: BT - 90 Destroy Infra (TFE)
+    organization: Default
+    project: Better Together Demo
+    playbook: playbooks/90_destroy_infra.yml
+    inventory: Demo Inventory (localhost)
+    credentials:
+      - Terraform Enterprise Token
+    execution_environment: bt-demo-ee

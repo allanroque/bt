@@ -1,0 +1,37 @@
+---
+# Workflow Day 2 — atualização da aplicação (ex.: nova versão via Survey no AAP)
+- name: Update application version (Day 2)
+  hosts: role_webserver
+  become: true
+  gather_facts: false
+
+  vars:
+    app_version: "v2.0"
+    nginx_root: /usr/share/nginx/html
+
+  tasks:
+    - name: Update version stamp
+      ansible.builtin.copy:
+        dest: "{{ nginx_root }}/version.txt"
+        mode: '0644'
+        content: |
+          app_version: {{ app_version }}
+          updated_by: Ansible Automation Platform (Day 2 operations)
+          updated_at: {{ now(utc=true).isoformat() }}
+
+    - name: Add visible version banner to the homepage
+      ansible.builtin.blockinfile:
+        path: "{{ nginx_root }}/index.html"
+        marker: "<!-- {mark} AAP DAY2 BANNER -->"
+        insertafter: "<body[^>]*>"
+        block: |
+          <div style="background:#ee0000;color:#fff;text-align:center;
+                      padding:8px;font-family:sans-serif;font-weight:bold;">
+            Parasol Insurance — {{ app_version }} — atualizado pelo Ansible Automation Platform
+          </div>
+      ignore_errors: true
+
+    - name: Reload nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: reloaded

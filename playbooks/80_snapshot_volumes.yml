@@ -1,0 +1,46 @@
+---
+# Passo 2 do Workflow de Descomissionamento — "Snapshot volumes"
+# Cria snapshots dos volumes EBS antes do destroy (política de arquivamento)
+- name: Snapshot EBS volumes before decommission
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    aws_region: us-east-1
+
+  tasks:
+    - name: Collect web server instance IDs from inventory
+      ansible.builtin.set_fact:
+        web_instance_ids: >-
+          {{ groups['role_webserver'] | default([])
+             | map('extract', hostvars, 'instance_id') | select('defined') | list }}
+
+    - name: Gather instance info
+      amazon.aws.ec2_instance_info:
+        region: "{{ aws_region }}"
+        instance_ids: "{{ web_instance_ids }}"
+      register: instances_info
+      when: web_instance_ids | length > 0
+
+    - name: Create snapshot of each root volume
+      amazon.aws.ec2_snapshot:
+        region: "{{ aws_region }}"
+        volume_id: "{{ item.1.ebs.volume_id }}"
+        description: >-
+          BT demo - snapshot pre-decommission de {{ item.0.instance_id }}
+          em {{ now(utc=true).isoformat() }}
+        snapshot_tags:
+          Project: better-together-demo
+          SourceInstance: "{{ item.0.instance_id }}"
+          Reason: archive-policy
+        wait: false
+      loop: "{{ instances_info.instances | default([]) | subelements('block_device_mappings') }}"
+      loop_control:
+        label: "{{ item.0.instance_id }} / {{ item.1.ebs.volume_id }}"
+      when: web_instance_ids | length > 0
+
+    - name: No instances found notice
+      ansible.builtin.debug:
+        msg: "Nenhuma instância webserver encontrada no inventário — nada a fazer."
+      when: web_instance_ids | length == 0

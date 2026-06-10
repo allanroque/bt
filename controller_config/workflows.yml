@@ -1,0 +1,83 @@
+---
+# Workflows da demo Better Together (Configuration-as-Code)
+controller_workflows:
+  # ===========================================================
+  # Workflow Day 1 — espelha o diagrama de provisionamento
+  # ===========================================================
+  - name: BT - 01 Provision Web App
+    organization: Default
+    description: >-
+      1) Terraform provisiona; 2) Inventário dinâmico sincroniza;
+      3) Configure/App/Compliance; 4) Load Balancer; 5) ServiceNow
+    simplified_workflow_nodes:
+      - identifier: provision
+        unified_job_template: BT - 10 Provision Infra (TFE)
+        success_nodes: [inventory_sync]
+
+      - identifier: inventory_sync
+        unified_job_template: Terraform State Inventory Source
+        success_nodes: [configure]
+
+      - identifier: configure
+        unified_job_template: BT - 20 Configure Web Servers
+        success_nodes: [deploy_app, compliance]
+
+      - identifier: deploy_app
+        unified_job_template: BT - 30 Deploy Application
+        success_nodes: [update_lb]
+
+      - identifier: compliance
+        unified_job_template: BT - 40 Compliance Checks
+
+      - identifier: update_lb
+        unified_job_template: BT - 45 Update Load Balancer
+        success_nodes: [servicenow]
+
+      - identifier: servicenow
+        unified_job_template: BT - 50 Update ServiceNow
+
+  # ===========================================================
+  # Workflow Day 2 — atualização da aplicação
+  # ===========================================================
+  - name: BT - 02 Update Application
+    organization: Default
+    description: Atualização de versão da aplicação (Day 2 operations)
+    simplified_workflow_nodes:
+      - identifier: update_app
+        unified_job_template: BT - 60 Update Application (Day 2)
+        success_nodes: [servicenow]
+      - identifier: servicenow
+        unified_job_template: BT - 50 Update ServiceNow
+
+  # ===========================================================
+  # Workflow Descomissionamento — espelha o segundo diagrama
+  # ===========================================================
+  - name: BT - 99 Decommission
+    organization: Default
+    description: >-
+      1) Remove do LB; 2) Snapshot dos volumes; 3) Terraform destroy;
+      4) Sync de inventário; 5) Atualiza ITSM/CMDB
+    simplified_workflow_nodes:
+      - identifier: deregister_lb
+        unified_job_template: BT - 45 Update Load Balancer
+        extra_data:
+          lb_action: deregister
+        success_nodes: [snapshot]
+
+      - identifier: snapshot
+        unified_job_template: BT - 80 Snapshot Volumes
+        success_nodes: [destroy]
+
+      - identifier: destroy
+        unified_job_template: BT - 90 Destroy Infra (TFE)
+        success_nodes: [inventory_sync]
+
+      - identifier: inventory_sync
+        unified_job_template: Terraform State Inventory Source
+        success_nodes: [servicenow]
+        failure_nodes: [servicenow]   # state vazio pode falhar o sync; segue para ITSM
+
+      - identifier: servicenow
+        unified_job_template: BT - 50 Update ServiceNow
+        extra_data:
+          snow_event: decommission

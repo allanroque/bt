@@ -1,0 +1,46 @@
+---
+# Passo 3 do Workflow Day 1 — "Configure"
+# Baseline de configuração dos novos web servers (RHEL 9)
+- name: Configure new web servers (baseline)
+  hosts: role_webserver
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Wait for SSH to be available
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        delay: 5
+
+  tasks:
+    - name: Install baseline packages
+      ansible.builtin.dnf:
+        name:
+          - firewalld
+          - git
+          - policycoreutils-python-utils
+        state: present
+
+    - name: Ensure firewalld is running
+      ansible.builtin.systemd:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: Allow HTTP traffic
+      ansible.posix.firewalld:
+        service: http
+        permanent: true
+        immediate: true
+        state: enabled
+
+    - name: Set demo MOTD (visual para a demo)
+      ansible.builtin.copy:
+        dest: /etc/motd
+        mode: '0644'
+        content: |
+          *********************************************************
+          *  Better Together Demo                                 *
+          *  Provisionado por: Terraform Enterprise               *
+          *  Configurado por:  Ansible Automation Platform        *
+          *********************************************************

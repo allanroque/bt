@@ -1,0 +1,39 @@
+---
+# Passo 5 do Workflow Day 1 — "Atualizar ITSM (ServiceNow)"
+# Cria um change request com os detalhes do novo workload.
+# Tolerante a ausência de credenciais para não travar a demo.
+- name: Update ServiceNow with deployed workload details
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    snow_instance: "{{ lookup('env', 'SN_HOST') | default('', true) }}"
+    snow_event: "provision"   # provision | decommission
+    workload_hosts: "{{ groups['role_webserver'] | default([]) }}"
+
+  tasks:
+    - name: Build workload description
+      ansible.builtin.set_fact:
+        snow_description: |
+          Better Together Demo - evento: {{ snow_event }}
+          Workload: aws-webapp (Parasol Insurance)
+          Provisionado por: Terraform Enterprise (disparado pelo AAP)
+          Configurado por: Ansible Automation Platform
+          Hosts: {{ workload_hosts | join(', ') | default('n/a', true) }}
+          Data: {{ now(utc=true).isoformat() }}
+
+    - name: Create change request in ServiceNow
+      servicenow.itsm.change_request:
+        type: normal
+        state: assess
+        short_description: "[AAP] Better Together demo - {{ snow_event }} aws-webapp"
+        description: "{{ snow_description }}"
+      register: snow_result
+      when: snow_instance | length > 0
+      ignore_errors: true
+
+    - name: Simulated ITSM update (sem credencial ServiceNow)
+      ansible.builtin.debug:
+        msg: "[SIMULADO] ServiceNow atualizado: {{ snow_description }}"
+      when: snow_instance | length == 0

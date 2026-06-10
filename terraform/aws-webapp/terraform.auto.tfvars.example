@@ -1,0 +1,8 @@
+# Exemplo de variáveis — defina-as no workspace do TFE (recomendado) ou
+# copie para terraform.auto.tfvars (não comitar).
+prefix             = "bt-demo"
+aws_region         = "us-east-1"
+web_instance_count = 2
+instance_type      = "t3.micro"
+ssh_allowed_cidr   = "0.0.0.0/0" # restrinja ao IP de saída do AAP/EE
+ssh_public_key     = "ssh-rsa AAAA... ansible@aap"
