@@ -1,0 +1,48 @@
+---
+# Instala e publica um web server simples (httpd) nos hosts provisionados.
+- name: Instalar web server (httpd)
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    app_version: "{{ app_version | default('v1.0', true) }}"
+
+  tasks:
+    - name: Instalar httpd e firewalld
+      ansible.builtin.dnf:
+        name:
+          - httpd
+          - firewalld
+        state: present
+
+    - name: Habilitar e iniciar firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: Liberar HTTP no firewall
+      ansible.posix.firewalld:
+        service: http
+        permanent: true
+        immediate: true
+        state: enabled
+
+    - name: Página index da demo
+      ansible.builtin.copy:
+        dest: /var/www/html/index.html
+        mode: '0644'
+        content: |
+          <html><head><title>Better Together</title></head>
+          <body style="font-family:sans-serif">
+            <h1>Better Together Demo — {{ app_version }}</h1>
+            <p>Provisionado por <b>Terraform Enterprise</b>, configurado por <b>Ansible Automation Platform</b>.</p>
+            <p>Host: {{ inventory_hostname }}</p>
+          </body></html>
+
+    - name: Habilitar e iniciar httpd
+      ansible.builtin.service:
+        name: httpd
+        state: started
+        enabled: true

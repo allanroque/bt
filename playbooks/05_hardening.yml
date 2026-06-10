@@ -1,0 +1,55 @@
+---
+# Hardening básico dos web servers recém-provisionados (RHEL9).
+# Coisas simples para a demo: MOTD, chrony (NTP) e logging persistente.
+- name: Hardening básico (motd, chrony, logging)
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Aguardar SSH ficar disponível
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        delay: 5
+
+  tasks:
+    - name: MOTD da demo
+      ansible.builtin.copy:
+        dest: /etc/motd
+        mode: '0644'
+        content: |
+          *********************************************************
+          *  Better Together Demo - host gerenciado pelo AAP      *
+          *  Provisionado: Terraform Enterprise                   *
+          *  Configurado:  Ansible Automation Platform            *
+          *********************************************************
+
+    - name: Instalar chrony (NTP)
+      ansible.builtin.dnf:
+        name: chrony
+        state: present
+
+    - name: Habilitar e iniciar chronyd
+      ansible.builtin.service:
+        name: chronyd
+        state: started
+        enabled: true
+
+    - name: Logging persistente do journald
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/journald.conf
+        regexp: '^#?Storage='
+        line: 'Storage=persistent'
+      notify: restart journald
+
+    - name: Garantir diretório de log persistente
+      ansible.builtin.file:
+        path: /var/log/journal
+        state: directory
+        mode: '0755'
+
+  handlers:
+    - name: restart journald
+      ansible.builtin.service:
+        name: systemd-journald
+        state: restarted

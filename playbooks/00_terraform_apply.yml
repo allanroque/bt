@@ -1,0 +1,89 @@
+---
+# Day 0 — Provisionamento via Terraform Enterprise (APPLY)
+# Espelha ansible-tmm/aap-hashi-lab playbooks/terraform_apply_plan.yml,
+# adaptado para a demo Better Together:
+#   - workspace TFE-Demo (org rhdp-tf-org) no seu TFE showroom
+#   - renderiza o tfvars em runtime injetando a SUA chave publica SSH
+#     (par da credencial Machine CRED-SSH-AWS-ROQUE no AAP), que vira o
+#     aws_key_pair usado pelas instancias EC2.
+#
+# Conexao ao TFE: vem da credencial do AAP.
+#   - cred "Terraform Enterprise credential" (env TFE_HOSTNAME/TFE_TOKEN/TFE_ORGANIZATION), ou
+#   - cred tipo "Terraform Enterprise credential type" (extra_vars tf_hostname/tf_token/tf_org/tf_workspace)
+- name: Day 0 - Terraform Enterprise APPLY (provisiona AWS web app)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # Aceita tanto extra_vars tf_* (cred type 34) quanto env TFE_* (cred type 73); cai no default do lab.
+    tfe_hostname: "{{ tf_hostname | default(lookup('env', 'TFE_HOSTNAME'), true) | default('showroom-2mf4p-1.apps.ocpv05.rhdp.net', true) }}"
+    tfe_token: "{{ tf_token | default(lookup('env', 'TFE_TOKEN'), true) }}"
+    tfe_org: "{{ tf_org | default(lookup('env', 'TFE_ORGANIZATION'), true) | default('rhdp-tf-org', true) }}"
+    tfe_workspace: "{{ tf_workspace | default('TFE-Demo', true) }}"
+    tfe_validate_certs: false
+
+    # IaC do repo -> working dir (apenas os .tf; o tfvars e renderizado abaixo)
+    tf_config_src: "{{ playbook_dir }}/../terraform/aws-webapp"
+    tf_work_dir: "/tmp/bt-tf-apply"
+
+    # Parametros do workload (podem ser sobrescritos via survey / extra_vars no launch)
+    aws_region: "us-east-2"            # alinhado ao inventory source EC2 (INV-TERRAFORM)
+    web_instance_count: 2
+    instance_type: "t3.small"          # >= 2 GiB de memoria (t3.micro tem so 1 GiB)
+    ssh_allowed_cidr: "0.0.0.0/0"
+    # Chave PUBLICA do laboratorio (par da CRED-SSH-AWS-ROQUE no AAP)
+    ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINA5y99IQ6rNhG6DwmoLAoWwyIPLpHdKI4pg4EA4DZBa allanrafaelroque@gmail.com"
+
+  tasks:
+    - name: Garantir o working dir do Terraform
+      ansible.builtin.file:
+        path: "{{ tf_work_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copiar a configuracao Terraform (.tf) do repo para o working dir
+      ansible.builtin.copy:
+        src: "{{ tf_config_src }}/"
+        dest: "{{ tf_work_dir }}/"
+
+    - name: Renderizar tfvars em runtime (injeta a chave SSH e os parametros)
+      ansible.builtin.copy:
+        dest: "{{ tf_work_dir }}/terraform.auto.tfvars"
+        mode: '0644'
+        content: |
+          prefix             = "bt-demo"
+          aws_region         = "{{ aws_region }}"
+          web_instance_count = {{ web_instance_count }}
+          instance_type      = "{{ instance_type }}"
+          ssh_allowed_cidr   = "{{ ssh_allowed_cidr }}"
+          ssh_public_key     = "{{ ssh_public_key }}"
+
+    - name: Criar nova configuration version no workspace do TFE
+      hashicorp.terraform.configuration_version:
+        tf_hostname: "{{ tfe_hostname }}"
+        tf_token: "{{ tfe_token }}"
+        tf_validate_certs: "{{ tfe_validate_certs }}"
+        organization: "{{ tfe_org }}"
+        workspace: "{{ tfe_workspace }}"
+        configuration_files_path: "{{ tf_work_dir }}"
+        auto_queue_runs: false
+        state: present
+
+    - name: Disparar run com APPLY automatico e aguardar
+      hashicorp.terraform.run:
+        tf_hostname: "{{ tfe_hostname }}"
+        tf_token: "{{ tfe_token }}"
+        tf_validate_certs: "{{ tfe_validate_certs }}"
+        organization: "{{ tfe_org }}"
+        workspace: "{{ tfe_workspace }}"
+        run_message: "Better Together - APPLY via AAP (Day 0)"
+        auto_apply: true
+        poll_interval: 5
+        poll_timeout: 900
+        state: present
+      register: tfe_apply
+
+    - name: Mostrar resultado do run de APPLY
+      ansible.builtin.debug:
+        var: tfe_apply
