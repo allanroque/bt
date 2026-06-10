@@ -29,7 +29,7 @@
 
     # Parametros do workload (podem ser sobrescritos via survey / extra_vars no launch)
     aws_region: "us-east-2"            # alinhado ao inventory source EC2 (INV-TERRAFORM)
-    web_instance_count: 2
+    web_instance_count: 1              # fixo: 1 instancia
     instance_type: "t3.small"          # >= 2 GiB de memoria (t3.micro tem so 1 GiB)
     ssh_allowed_cidr: "0.0.0.0/0"
     # Chave PUBLICA do laboratorio (par da CRED-SSH-AWS-ROQUE no AAP)
