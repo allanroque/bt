@@ -1,9 +1,14 @@
 ---
-# Instala e publica um web server simples (httpd) nos hosts provisionados.
-- name: Instalar web server (httpd)
+# Day 1 - Publica o site Parasol Insurance (nginx) nos hosts EC2 provisionados.
+- name: Deploy Parasol Insurance Website (nginx) em RHEL 9
   hosts: all
   become: true
   gather_facts: false
+  vars:
+    ansible_ssh_retries: 6
+    website_repo: "https://github.com/ansible-tmm/parasol-website.git"
+    nginx_root: "/usr/share/nginx/html"
+    temp_dir: "/tmp/parasol-website"
 
   pre_tasks:
     - name: Aguardar SSH ficar disponível
@@ -11,20 +16,24 @@
         timeout: 300
         delay: 5
 
-  vars:
-    ansible_ssh_retries: 6
-    app_version: "v1.0"
-
   tasks:
-    - name: Instalar httpd e firewalld
+    - name: Parar httpd se existir (evita conflito de porta 80 com nginx)
+      ansible.builtin.systemd:
+        name: httpd
+        state: stopped
+        enabled: false
+      failed_when: false
+
+    - name: Instalar git, nginx e firewalld
       ansible.builtin.dnf:
         name:
-          - httpd
+          - git
+          - nginx
           - firewalld
         state: present
 
     - name: Habilitar e iniciar firewalld
-      ansible.builtin.service:
+      ansible.builtin.systemd:
         name: firewalld
         state: started
         enabled: true
@@ -36,20 +45,62 @@
         immediate: true
         state: enabled
 
-    - name: Página index da demo
-      ansible.builtin.copy:
-        dest: /var/www/html/index.html
-        mode: '0644'
-        content: |
-          <html><head><title>Better Together</title></head>
-          <body style="font-family:sans-serif">
-            <h1>Better Together Demo — {{ app_version }}</h1>
-            <p>Provisionado por <b>Terraform Enterprise</b>, configurado por <b>Ansible Automation Platform</b>.</p>
-            <p>Host: {{ inventory_hostname }}</p>
-          </body></html>
+    - name: Limpar conteúdo atual do html do nginx
+      ansible.builtin.file:
+        path: "{{ nginx_root }}/"
+        state: absent
 
-    - name: Habilitar e iniciar httpd
-      ansible.builtin.service:
-        name: httpd
-        state: started
+    - name: Garantir o diretório html do nginx
+      ansible.builtin.file:
+        path: "{{ nginx_root }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Clonar o repositório do site Parasol
+      ansible.builtin.git:
+        repo: "{{ website_repo }}"
+        dest: "{{ temp_dir }}"
+        version: main
+        force: true
+
+    - name: Copiar os arquivos do site para o nginx root
+      ansible.builtin.copy:
+        src: "{{ temp_dir }}/"
+        dest: "{{ nginx_root }}/"
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0644'
+        directory_mode: '0755'
+
+    - name: Restaurar contextos SELinux no html do nginx
+      ansible.builtin.command: restorecon -Rv {{ nginx_root }}
+      changed_when: false
+
+    - name: Garantir permissões corretas no web root do nginx
+      ansible.builtin.file:
+        path: "{{ nginx_root }}"
+        owner: root
+        group: root
+        mode: '0755'
+        recurse: true
+
+    - name: Limpar diretório temporário
+      ansible.builtin.file:
+        path: "{{ temp_dir }}"
+        state: absent
+
+    - name: Habilitar e (re)iniciar o nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted
         enabled: true
+
+  post_tasks:
+    - name: URL pública do site Parasol Insurance
+      ansible.builtin.debug:
+        msg: >-
+          Parasol Insurance no ar 👉
+          http://{{ public_ip_address | default(ansible_host, true) }}/
