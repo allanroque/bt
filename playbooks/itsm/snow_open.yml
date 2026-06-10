@@ -1,0 +1,45 @@
+---
+# ITSM - Abertura de Change no ServiceNow (BT).
+# Tolerante: sem SN_HOST roda em modo simulado (workflow verde).
+- name: ITSM - Abertura de Change (ServiceNow)
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    snow_instance: "{{ lookup('env', 'SN_HOST') | default('', true) }}"
+    workload_name: "{{ workload_name | default('aws-webapp (Better Together)', true) }}"
+
+  tasks:
+    - name: Montar conteúdo da change de abertura
+      ansible.builtin.set_fact:
+        change_short: "[AAP] Abertura — Provisionar {{ workload_name }}"
+        change_desc: |
+          Solicitação de mudança aberta automaticamente pela Ansible Automation Platform.
+
+          Objetivo .......: Provisionar e configurar o workload "{{ workload_name }}".
+          Provisionamento : HashiCorp Terraform Enterprise (workspace TFE-Demo, AWS us-east-2).
+          Configuração ...: Ansible — hardening (SELinux, chrony, MOTD, pacotes, logging) e web server.
+          Plataforma .....: Red Hat Ansible Automation Platform (orquestração ponta a ponta).
+          Risco ..........: Baixo. Janela: automatizada. Rollback: workflow de descomissionamento.
+          Aberto em ......: {{ ansible_date_time.iso8601 }}
+
+    - name: Abrir change request no ServiceNow
+      servicenow.itsm.change_request:
+        type: standard
+        state: new
+        short_description: "{{ change_short }}"
+        description: "{{ change_desc }}"
+      register: snow_open
+      when: snow_instance | length > 0
+      ignore_errors: true
+
+    - name: ITSM em modo SIMULADO (sem credencial ServiceNow)
+      ansible.builtin.debug:
+        msg: "{{ ['[SIMULADO] ' ~ change_short] + change_desc.split('\n') }}"
+      when: snow_instance | length == 0
+
+    - name: Número da change criada (modo real)
+      ansible.builtin.debug:
+        var: snow_open.record.number
+      when: snow_instance | length > 0 and (snow_open is succeeded)

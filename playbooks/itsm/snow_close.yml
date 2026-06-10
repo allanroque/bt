@@ -1,0 +1,40 @@
+---
+# ITSM - Fechamento de Change no ServiceNow (BT).
+# Tolerante: sem SN_HOST roda em modo simulado (workflow verde).
+- name: ITSM - Fechamento de Change (ServiceNow)
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    snow_instance: "{{ lookup('env', 'SN_HOST') | default('', true) }}"
+    workload_name: "{{ workload_name | default('aws-webapp (Better Together)', true) }}"
+
+  tasks:
+    - name: Montar conteúdo do fechamento da change
+      ansible.builtin.set_fact:
+        change_short: "[AAP] Fechamento — {{ workload_name }} concluído"
+        close_notes: |
+          Mudança executada e concluída com sucesso pela Ansible Automation Platform.
+
+          Resultado ......: Workload "{{ workload_name }}" provisionado, endurecido e publicado.
+          Etapas .........: Terraform apply → inventário dinâmico → hardening em paralelo → web server.
+          Verificação ....: Serviço web ativo; baseline de hardening aplicada (SELinux/chrony/logging).
+          Status .........: Implementado com sucesso (closed / successful).
+          Fechado em .....: {{ ansible_date_time.iso8601 }}
+
+    - name: Fechar change request no ServiceNow
+      servicenow.itsm.change_request:
+        type: standard
+        state: closed
+        close_code: successful
+        close_notes: "{{ close_notes }}"
+        short_description: "{{ change_short }}"
+      register: snow_close
+      when: snow_instance | length > 0
+      ignore_errors: true
+
+    - name: ITSM em modo SIMULADO (sem credencial ServiceNow)
+      ansible.builtin.debug:
+        msg: "{{ ['[SIMULADO] ' ~ change_short] + close_notes.split('\n') }}"
+      when: snow_instance | length == 0

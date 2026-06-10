@@ -1,0 +1,24 @@
+---
+# Hardening - MOTD (BT, INV-TERRAFORM)
+- name: Hardening - MOTD
+  hosts: all
+  become: true
+  gather_facts: false
+
+  pre_tasks:
+    - name: Aguardar SSH ficar disponível
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        delay: 5
+
+  tasks:
+    - name: Definir /etc/motd da demo
+      ansible.builtin.copy:
+        dest: /etc/motd
+        mode: '0644'
+        content: |
+          *********************************************************
+          *  Better Together Demo - host gerenciado pelo AAP      *
+          *  Provisionado: Terraform Enterprise                   *
+          *  Configurado:  Ansible Automation Platform            *
+          *********************************************************

@@ -17,7 +17,7 @@
 
   vars:
     # Aceita tanto extra_vars tf_* (cred type 34) quanto env TFE_* (cred type 73); cai no default do lab.
-    tfe_hostname: "{{ tf_hostname | default(lookup('env', 'TFE_HOSTNAME'), true) | default('showroom-2mf4p-1.apps.ocpv05.rhdp.net', true) }}"
+    tfe_hostname: "{{ tf_hostname | default(lookup('env', 'TFE_HOSTNAME'), true) | default('tfe-https-2mf4p-1.apps.ocpv05.rhdp.net', true) }}"
     tfe_token: "{{ tf_token | default(lookup('env', 'TFE_TOKEN'), true) }}"
     tfe_org: "{{ tf_org | default(lookup('env', 'TFE_ORGANIZATION'), true) | default('rhdp-tf-org', true) }}"
     tfe_workspace: "{{ tf_workspace | default('TFE-Demo', true) }}"

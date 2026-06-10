@@ -1,0 +1,27 @@
+---
+# Hardening - diretório de log de automação (BT, INV-TERRAFORM)
+- name: Hardening - diretório de log de automação
+  hosts: all
+  become: true
+  gather_facts: false
+
+  pre_tasks:
+    - name: Aguardar SSH ficar disponível
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        delay: 5
+
+  tasks:
+    - name: Criar /var/log/ansible
+      ansible.builtin.file:
+        path: /var/log/ansible
+        state: directory
+        owner: root
+        group: root
+        mode: '0750'
+
+    - name: Marca de host gerenciado
+      ansible.builtin.copy:
+        dest: /var/log/ansible/README
+        mode: '0640'
+        content: "Host gerenciado pelo AAP (Better Together). Logs de automacao neste diretorio.\n"

@@ -9,10 +9,10 @@
   gather_facts: false
 
   vars:
-    tfe_hostname: "{{ lookup('env', 'TFE_HOSTNAME') | default('showroom-2mf4p-1.apps.ocpv05.rhdp.net', true) }}"
-    tfe_token: "{{ lookup('env', 'TFE_TOKEN') }}"
-    tfe_organization: "{{ lookup('env', 'TFE_ORGANIZATION') | default('rhdp-tf-org', true) }}"
-    tfe_workspace: "TFE-Demo"
+    tfe_hostname: "{{ tf_hostname | default(lookup('env', 'TFE_HOSTNAME'), true) | default('tfe-https-2mf4p-1.apps.ocpv05.rhdp.net', true) }}"
+    tfe_token: "{{ tf_token | default(lookup('env', 'TFE_TOKEN'), true) }}"
+    tfe_organization: "{{ tf_org | default(lookup('env', 'TFE_ORGANIZATION'), true) | default('rhdp-tf-org', true) }}"
+    tfe_workspace: "{{ tf_workspace | default('TFE-Demo', true) }}"
     tfe_validate_certs: false
     tf_config_path: "{{ playbook_dir }}/../terraform/aws-webapp"
 

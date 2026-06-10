@@ -1,0 +1,24 @@
+---
+# Hardening - chrony (NTP) (BT, INV-TERRAFORM)
+- name: Hardening - chrony (NTP)
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Aguardar SSH ficar disponível
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        delay: 5
+
+  tasks:
+    - name: Instalar chrony
+      ansible.builtin.dnf:
+        name: chrony
+        state: present
+
+    - name: Habilitar e iniciar chronyd
+      ansible.builtin.service:
+        name: chronyd
+        state: started
+        enabled: true

@@ -1,0 +1,23 @@
+---
+# Hardening - SELinux em enforcing (BT, roda nos hosts EC2 do INV-TERRAFORM)
+- name: Hardening - SELinux enforcing
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Aguardar SSH ficar disponível
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        delay: 5
+
+  tasks:
+    - name: Garantir SELinux em enforcing (policy targeted)
+      ansible.posix.selinux:
+        policy: targeted
+        state: enforcing
+      register: selinux_state
+
+    - name: Mostrar estado do SELinux
+      ansible.builtin.debug:
+        var: selinux_state

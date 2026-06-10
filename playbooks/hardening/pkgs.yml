@@ -1,0 +1,23 @@
+---
+# Hardening - pacotes base (BT, INV-TERRAFORM)
+- name: Hardening - pacotes base
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Aguardar SSH ficar disponível
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        delay: 5
+
+  tasks:
+    - name: Instalar pacotes base
+      ansible.builtin.dnf:
+        name:
+          - vim-enhanced
+          - git
+          - bash-completion
+          - tmux
+          - policycoreutils-python-utils
+        state: present
