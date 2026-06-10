@@ -8,7 +8,7 @@
 
   vars:
     snow_instance: "{{ lookup('env', 'SN_HOST') | default('', true) }}"
-    workload_name: "{{ workload_name | default('aws-webapp (Better Together)', true) }}"
+    workload_name: "aws-webapp (Better Together)"
 
   tasks:
     - name: Montar conteúdo do fechamento da change
