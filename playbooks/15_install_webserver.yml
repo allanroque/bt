@@ -12,6 +12,7 @@
         delay: 5
 
   vars:
+    ansible_ssh_retries: 6
     app_version: "{{ app_version | default('v1.0', true) }}"
 
   tasks:

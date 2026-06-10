@@ -4,6 +4,8 @@
   hosts: all
   become: true
   gather_facts: false
+  vars:
+    ansible_ssh_retries: 6
 
   pre_tasks:
     - name: Aguardar SSH ficar disponível
